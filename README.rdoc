@@ -1,6 +1,6 @@
 = ODBC binding for Ruby
 
-* Homepage: http://www.ch-werner.de/rubyodbc/
+http://www.ch-werner.de/rubyodbc/
 
 == CloudVolumes Improvements:
 

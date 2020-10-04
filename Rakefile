@@ -13,6 +13,7 @@ hoe = Hoe.spec 'ruby-odbc' do |ext|
   self.extra_rdoc_files += %w[ ext/init.c ext/odbc.c ]
   self.local_rdoc_dir = 'generated_docs'
   spec_extras[:extensions] = %w[ ext/extconf.rb ext/utf8/extconf.rb ]
+  self.version = 1.0
 end
 
 ENV['RUBY_CC_VERSION'] ||= '1.8.7:1.9.2'
