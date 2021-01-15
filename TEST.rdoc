@@ -1,0 +1,23 @@
+=== Installing and Configuring the ODBC Driver for macOS:
+https://docs.snowflake.com/en/user-guide/odbc-mac.html
+
+
+=== To Run the code locally:
+    gem install rake-compiler
+    gem install hoe
+    rake clobber && rake gem && gem install pkg/ruby-odbc-1.0.gem && irb
+    require 'pry'; require 'odbc'
+    config ={:uid=>"<user_name>",:pwd=>"<user_password>",:driver=>"/opt/snowflake/snowflakeodbc/lib/universal/libSnowflake.dylib",:server=>'<>'}
+    drv = ::ODBC::Driver.new
+    drv.name = 'Snowflake'
+    config.each do |param, value|
+      if :driver == param && value !~ /\A\{.+\}\z/
+        value = "{#{value}}"
+      end
+      drv.attrs[param.to_s.upcase] = value.to_s
+    end
+    connection = ODBC::Database.new.drvconnect(drv)
+
+    connection.run('use role bundled_role_ba0bbf50_5796_403e_b931_aa46b76382f4;') { |statement| binding.pry }
+
+    connection.run('select * from MILL_INT_TEST_EDW_PDS_SCHEMA.QUERY_MERGE1') { |st| p st.columns }
