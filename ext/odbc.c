@@ -347,6 +347,17 @@ static ID IDto_s;
 #define INFO_SPECCOLS 9
 
 /*
+ * SNOWFLAKE CUSTOM TIMESTAMP
+ */
+
+#define SQL_SF_TIMESTAMP_LTZ 2000
+#define SQL_SF_TIMESTAMP_TZ  2001
+#define SQL_SF_TIMESTAMP_NTZ 2002
+#define SQL_SF_ARRAY         2003
+#define SQL_SF_OBJECT        2004
+#define SQL_SF_VARIANT       2005
+
+/*
  * Modes for make_result/stmt_exec_int
  */
 
@@ -1246,7 +1257,7 @@ tracesql(SQLHENV henv, SQLHDBC hdbc, SQLHSTMT hstmt, SQLRETURN ret,
 		(long) henv, (long) hdbc, (long) hstmt);
 	trace_sql_ret(ret);
     }
-    
+
     return ret;
 }
 #endif
@@ -2131,7 +2142,7 @@ dbc_connect(int argc, VALUE *argv, VALUE self)
 #endif
 	rb_raise(Cerror, "%s", msg);
     }
-    
+
     {
       SQLRETURN nRet;
 
@@ -2144,7 +2155,7 @@ dbc_connect(int argc, VALUE *argv, VALUE self)
       nRet = SQLSetConnectAttr(dbc, SQL_ATTR_LOGIN_TIMEOUT, (SQLPOINTER)nTimeout, SQL_IS_INTEGER);
       if (!SQL_SUCCEEDED(nRet)) fprintf(stderr, "Failed to set timeout to %d: error %d\n", nTimeout, nRet);
     }
-  
+
     if (!succeeded(SQL_NULL_HENV, dbc, SQL_NULL_HSTMT,
 		   SQLConnect(dbc, (SQLTCHAR *) sdsn, SQL_NTS,
 			      (SQLTCHAR *) suser,
@@ -3745,6 +3756,7 @@ make_column(SQLHSTMT hstmt, int i, int upc, int use_scn)
 		  SQLColAttributes(hstmt, ic, SQL_COLUMN_TYPE, NULL,
 				   0, NULL, &iv),
 		  NULL, "SQLColAttributes(SQL_COLUMN_TYPE)")) {
+     rb_warn("Column type (type=%d)", SQL_COLUMN_TYPE);
 	v = INT2NUM(iv);
     } else {
 	v = INT2NUM(SQL_UNKNOWN_TYPE);
@@ -5455,6 +5467,8 @@ timestamp_fraction(int argc, VALUE *argv, VALUE self)
 	return INT2NUM(ts->fraction);
     }
     ts->fraction = NUM2INT(v);
+
+    rb_warn("5471: Fraction Component NUM2INT(v) -> (%s), INT2NUM(ts->fraction) ",  NUM2INT(v),INT2NUM(ts->fraction) );
     return self;
 }
 
@@ -6302,6 +6316,14 @@ do_fetch(STMT *q, int mode)
 	    while ((curlen == SQL_NO_TOTAL) || (curlen > chunksize)) {
 		SQLRETURN rc;
 		int ret;
+// https://github.com/lurcher/unixODBC/blob/ca226e2e94f68ef7eee5ed9b6368f6550e3ecd56/DriverManager/SQLGetData.c
+//https://www.ibm.com/support/knowledgecenter/en/SSEPEK_12.0.0/odbc/src/tpc/db2z_fngetdata.html
+//SQLGetData( SQLHSTMT statement_handle,
+//           SQLUSMALLINT column_number,
+//           SQLSMALLINT target_type,
+//           SQLPOINTER target_value,
+//           SQLLEN buffer_length,
+//           SQLLEN *strlen_or_ind )
 
 		rc = SQLGetData(q->hstmt, (SQLUSMALLINT) (i + 1),
 				type, (SQLPOINTER) (valp + totlen),
@@ -6395,7 +6417,7 @@ do_fetch(STMT *q, int mode)
 	    case SQL_C_DATE:
 		{
 		    DATE_STRUCT *date;
-
+            rb_warn("In SQL_C_DATE:6418");
 		    if (q->dbcp != NULL && q->dbcp->rbtime == Qtrue) {
 			const char *p;
 			char buffer[128];
@@ -6417,7 +6439,7 @@ do_fetch(STMT *q, int mode)
 	    case SQL_C_TIME:
 		{
 		    TIME_STRUCT *time;
-
+            rb_warn("In SQL_C_TIME:6440");
 		    if (q->dbcp != NULL && q->dbcp->rbtime == Qtrue) {
 			VALUE now, frac;
 
@@ -6445,10 +6467,10 @@ do_fetch(STMT *q, int mode)
 	    case SQL_C_TIMESTAMP:
 		{
 		    TIMESTAMP_STRUCT *ts;
-
+            rb_warn("In SQL_C_TIMESTAMP:6468");
 		    if (q->dbcp != NULL && q->dbcp->rbtime == Qtrue) {
 			VALUE frac;
-
+            rb_warn("In SQL_C_TIMESTAMP:6471 True block");
 			ts = (TIMESTAMP_STRUCT *) valp;
 			frac = rb_float_new((double) 1.0e-3 * ts->fraction);
 			v = rb_funcall(rb_cTime,
@@ -6463,6 +6485,8 @@ do_fetch(STMT *q, int mode)
 				       INT2NUM(ts->second),
 				       frac);
 		    } else {
+		    rb_warn("In SQL_C_TIMESTAMP:6471 False block");
+		    rb_warn("Date: %s", valp);
 			v = Data_Make_Struct(Ctimestamp, TIMESTAMP_STRUCT,
 					     0, xfree, ts);
 			*ts = *(TIMESTAMP_STRUCT *) valp;
@@ -8510,6 +8534,7 @@ Init_odbc()
     rb_define_method(Ctimestamp, "minute", timestamp_min, -1);
     rb_define_method(Ctimestamp, "second", timestamp_sec, -1);
     rb_define_method(Ctimestamp, "fraction", timestamp_fraction, -1);
+    rb_define_method(Ctimestamp, "zone", timestamp_fraction, -1);
     rb_define_method(Ctimestamp, "year=", timestamp_year, -1);
     rb_define_method(Ctimestamp, "month=", timestamp_month, -1);
     rb_define_method(Ctimestamp, "day=", timestamp_day, -1);
@@ -8517,6 +8542,7 @@ Init_odbc()
     rb_define_method(Ctimestamp, "minute=", timestamp_min, -1);
     rb_define_method(Ctimestamp, "second=", timestamp_sec, -1);
     rb_define_method(Ctimestamp, "fraction=", timestamp_fraction, -1);
+    rb_define_method(Ctimestamp, "zone=", timestamp_fraction, -1);
     rb_define_method(Ctimestamp, "<=>", timestamp_cmp, 1);
 
     /* procedure methods */
