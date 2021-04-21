@@ -6381,13 +6381,14 @@ do_fetch(STMT *q, int mode)
 	} else {
 	    totlen = curlen;
 	    valp = bufs[i];
-	    rb_warn("Fetching Type(%i)", type);
+	    rb_warn("Fetching totlen(%d)", totlen);
 	    if (!succeeded(SQL_NULL_HENV, SQL_NULL_HDBC, q->hstmt,
 			   SQLGetData(q->hstmt, (SQLUSMALLINT) (i + 1), type,
 				      (SQLPOINTER) valp, totlen, &curlen),
 			   &msg, "SQLGetData")) {
 		rb_raise(Cerror, "%s", msg);
 	    }
+	    rb_warn("Value of Pointer (%p)", &valp);
 	}
 	if (curlen == SQL_NULL_DATA) {
 	    v = Qnil;
