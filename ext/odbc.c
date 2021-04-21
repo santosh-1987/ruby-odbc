@@ -6300,6 +6300,8 @@ do_fetch(STMT *q, int mode)
 	SQLLEN totlen;
 	SQLLEN curlen = q->coltypes[i].size;
 	SQLSMALLINT type = q->coltypes[i].type;
+//	SQL Type: https://docs.microsoft.com/en-us/sql/relational-databases/native-client-odbc-date-time/data-type-support-for-odbc-date-and-time-improvements?view=sql-server-ver15
+//	SQLSMALLINT type = q->coltypes[i].type == 11 ? 1 : q->coltypes[i].type ;
 	VALUE v, name;
 	char *valp, *freep = NULL;
 
@@ -6379,6 +6381,7 @@ do_fetch(STMT *q, int mode)
 	} else {
 	    totlen = curlen;
 	    valp = bufs[i];
+	    rb_warn("Fetching Type(%i)", type);
 	    if (!succeeded(SQL_NULL_HENV, SQL_NULL_HDBC, q->hstmt,
 			   SQLGetData(q->hstmt, (SQLUSMALLINT) (i + 1), type,
 				      (SQLPOINTER) valp, totlen, &curlen),
