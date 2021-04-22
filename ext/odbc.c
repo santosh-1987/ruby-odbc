@@ -6305,6 +6305,9 @@ do_fetch(STMT *q, int mode)
 	VALUE v, name;
 	char *valp, *freep = NULL;
 
+    rb_warn("6308: Column type (type=%d)", type);
+    rb_warn("curlen (curlen=%d)", curlen);
+
 	if (curlen == SQL_NO_TOTAL) {
 	    SQLLEN chunksize = SEGSIZE;
 
@@ -6388,7 +6391,8 @@ do_fetch(STMT *q, int mode)
 			   &msg, "SQLGetData")) {
 		rb_raise(Cerror, "%s", msg);
 	    }
-	    rb_warn("Value of Pointer (%p)", &valp);
+	    rb_warn("Address of Pointer (%p)", &valp);
+	    rb_warn("Value of Pointer (%s)", valp);
 	}
 	if (curlen == SQL_NULL_DATA) {
 	    v = Qnil;
